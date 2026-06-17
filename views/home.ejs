@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title><%= title %></title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <%- include("partials/header") %>
+
+  <main>
+    <h1>📝 My Blog</h1>
+    <% posts.forEach(function(post, index){ %>
+      <div class="post">
+        <h2><a href="/posts/<%= post.title %>"><%= post.title %></a></h2>
+        <p><%= post.content.substring(0, 100) %>...</p>
+        <form action="/delete" method="POST">
+          <input type="hidden" name="postIndex" value="<%= index %>">
+          <button type="submit" class="delete-btn">🗑️ Delete</button>
+        </form>
+      </div>
+    <% }); %>
+  </main>
+
+  <%- include("partials/footer") %>
+</body>
+</html>
