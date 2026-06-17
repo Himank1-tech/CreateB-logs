@@ -1,33 +1,52 @@
 import express from "express";
 import bodyParser from "body-parser";
+import mongoose from "mongoose";
 
 const app = express();
 app.set("view engine", "ejs");
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static("public"));
 
-let posts = [];
+// 🔗 Connect to MongoDB Atlas using environment variable
+mongoose.connect(process.env.MONGO_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true
+})
+.then(() => console.log("✅ MongoDB connected"))
+.catch(err => console.error("❌ MongoDB connection error:", err));
 
-app.get("/", (req, res) => {
+// 📦 Schema + Model
+const postSchema = new mongoose.Schema({
+  title: String,
+  content: String
+});
+const Post = mongoose.model("Post", postSchema);
+
+// 🏠 Home route – show all posts
+app.get("/", async (req, res) => {
+  const posts = await Post.find();
   res.render("home", { title: "My Blog", posts });
 });
 
+// ✍️ Compose page
 app.get("/compose", (req, res) => {
   res.render("compose", { title: "Compose" });
 });
 
-app.post("/compose", (req, res) => {
-  const post = {
+// ➕ Add new post
+app.post("/compose", async (req, res) => {
+  const post = new Post({
     title: req.body.postTitle,
     content: req.body.postBody
-  };
-  posts.push(post);
+  });
+  await post.save();
   res.redirect("/");
 });
 
-app.get("/posts/:postName", (req, res) => {
+// 📖 View single post
+app.get("/posts/:postName", async (req, res) => {
   const requestedTitle = req.params.postName.toLowerCase();
-  const foundPost = posts.find(p => p.title.toLowerCase() === requestedTitle);
+  const foundPost = await Post.findOne({ title: new RegExp("^" + requestedTitle + "$", "i") });
   if (foundPost) {
     res.render("post", { title: foundPost.title, content: foundPost.content });
   } else {
@@ -35,9 +54,13 @@ app.get("/posts/:postName", (req, res) => {
   }
 });
 
-app.post("/delete", (req, res) => {
+// 🗑️ Delete post by index (or better: by ID)
+app.post("/delete", async (req, res) => {
   const indexToDelete = parseInt(req.body.postIndex);
-  posts.splice(indexToDelete, 1); // remove only that specific post
+  const posts = await Post.find();
+  if (posts[indexToDelete]) {
+    await Post.findByIdAndDelete(posts[indexToDelete]._id);
+  }
   res.redirect("/");
 });
 
